@@ -64,7 +64,6 @@ echo "$src => $dst..."
 echo "rfatool=$rfatool, compress=$compress, server=$server"
 echo
 
-exit
 mkdir -p "$dst"
 
 archive=( animations menu objects sound standardmesh texture treemesh bf1942/game )

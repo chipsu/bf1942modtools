@@ -37,9 +37,14 @@ done
 
 shift $(($OPTIND - 1))
 
-src="${1:-source}"
-dst="${2:-build/dist}"
-version="${3:-}"
+[[ "$2" != "" ]] || {
+  usage
+  exit 1
+}
+
+src="$1"
+dst="$2"
+version="$3"
 
 [[ $compress != 0 ]] && rfaargs="-Compress"
 
@@ -55,8 +60,39 @@ type "$rfatool" >/dev/null 2>&1 || {
 }
 
 [[ $server != 0 ]] && {
-  echo "FIXME SERVER BUILD!" >&2
-  exit 1
+  # MINGW32 does not have mktemp...
+  tmp="$TEMP/_bf1942_server_build_$(date +%s)"
+  tmp_dir_remove="$tmp"
+  mkdir -p "$tmp"
+  echo "Making server build..."
+  echo "$src => $tmp..."
+  
+  # find stuff
+  find "$src" -type f \
+    -not -iname '*.dds' \
+    -not -iname '*.wav' \
+    -not -iname '*.tga' \
+    -not -iname '*.bik' \
+    -not -iname '*.rcm' \
+    -not -iname '*.lsb' \
+  | while read path; do
+    # w32 dont have readlink.. just copy it
+    file="${path#$src}"
+    file="$tmp/$file"
+    dir="$(dirname "$file")"
+    [[ ! -d "$dir" ]] && mkdir -p "$dir"
+    echo "$path => $file"
+    cp "$path" "$file"
+  done
+  
+  # make sure root dirs/.rfa files exist (not sure if needed)
+  find "$src" -type d -maxdepth 1 | while read path; do
+    dir="$tmp/$(basename "$path")"
+    [[ ! -d "$dir" ]] && mkdir -p "$dir"
+  done
+  
+  # use tmp dir as src
+  src="$tmp"
 }
 
 echo
@@ -107,4 +143,8 @@ if [[ -f "$init" ]]; then
   [[ "$version" = "" ]] && version="$build-git-$(git rev-parse HEAD | head -c6 | escape)"
   sed -i "s/\$build/$build/g;s/\$version/$version/g" "$init"
   [[ "$OS" = "Windows_NT" ]] && attrib -r -a "$init"
+fi
+
+if [[ -d "$tmp_dir_remove" ]]; then
+  rm -rf "$tmp_dir_remove"
 fi

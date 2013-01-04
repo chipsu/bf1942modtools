@@ -86,9 +86,12 @@ type "$rfatool" >/dev/null 2>&1 || {
   done
   
   # make sure root dirs/.rfa files exist (not sure if needed)
-  find "$src" -type d -maxdepth 1 | while read path; do
+  find "$src" -type d -mindepth 1 -maxdepth 1 | while read path; do
     dir="$tmp/$(basename "$path")"
-    [[ ! -d "$dir" ]] && mkdir -p "$dir"
+    [[ ! -d "$dir" ]] && {
+      mkdir -p "$dir"
+      touch "$dir/empty_dir"
+    }
   done
   
   # use tmp dir as src
@@ -123,7 +126,7 @@ packdir() {
     else
       if [[ "$file" != bf1942/levels/* && "${archive[@]%%$file}" = "${archive[@]}" ]]; then
         mkdir -p "$dst/$(dirname "$file")"
-        cp -r "$path" "$dst/$file"
+        cp -r "$path/." "$dst/$file"
       else
         out="$dst/archives/$file.rfa"
         echo "$path => $out"
